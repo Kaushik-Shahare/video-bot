@@ -21,7 +21,6 @@ async def get_upload_url():
             if response.status == 200:
                 data = await response.json()
                 if "url" in data and "hash" in data:
-                    print('data: ', data)
                     return data["url"], data["hash"]
                 else:
                     print(f"Unexpected response format: {data}")
@@ -33,13 +32,20 @@ async def get_upload_url():
 async def upload_video(upload_url, file_path):
     async with aiohttp.ClientSession() as session:
         with open(file_path, "rb") as file:
-            async with session.put(upload_url, data=file) as response:
-                if response.status == 200:
-                    print(f"Uploaded: {file_path}")
-                    return True
-                else:
-                    print(f"Failed to upload {file_path}: {response.status}")
-                    return False
+            total_size = os.path.getsize(file_path)
+            with tqdm(total=total_size, unit='B', unit_scale=True, desc="Uploading") as pbar:
+                chunk_size = 1024 * 1024
+                while True:
+                    chunk = file.read(chunk_size)
+                    if not chunk:
+                        break
+                    async with session.put(upload_url, data=chunk) as response:
+                        if response.status != 200:
+                            print(f"Failed to upload {file_path}: {response.status}")
+                            return False
+                    pbar.update(len(chunk))
+            print(f"Uploaded: {file_path}")
+            return True
 
 async def create_post(video_title, video_hash, category_id=1):
     url = "https://api.socialverseapp.com/posts"
@@ -60,8 +66,12 @@ async def download_video(video_url, save_path):
     async with aiohttp.ClientSession() as session:
         async with session.get(video_url) as response:
             if response.status == 200:
+                total_size = int(response.headers.get('content-length', 0))
                 with open(save_path, "wb") as file:
-                    file.write(await response.read())
+                    with tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading") as pbar:
+                        async for data in response.content.iter_chunked(1024):
+                            file.write(data)
+                            pbar.update(len(data))
                 print(f"Downloaded: {save_path}")
             else:
                 print(f"Failed to download {video_url}: {response.status}")
