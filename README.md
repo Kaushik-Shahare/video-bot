@@ -15,7 +15,6 @@ This project is a video bot that downloads videos from Instagram and uploads the
 - `aiohttp`
 - `tqdm`
 - `python-dotenv`
-- `beautifulsoup4`
 - `instaloader`
 - `watchdog`
 

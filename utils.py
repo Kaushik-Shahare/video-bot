@@ -2,7 +2,6 @@ import aiohttp
 import os
 from tqdm.asyncio import tqdm
 from dotenv import load_dotenv
-from bs4 import BeautifulSoup
 import instaloader
 
 # Load environment variables
